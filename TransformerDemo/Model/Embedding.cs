@@ -11,6 +11,11 @@ public class Embedding
     private readonly float[][] _table;   // [vocabSize, dModel]
     private readonly float[][] _gradTable;
 
+    /// <summary>
+    /// 构造词嵌入层，内部创建大小为 (vocabSize, dModel) 的查表矩阵并做 Xavier 初始化。
+    /// </summary>
+    /// <param name="vocabSize">词表大小</param>
+    /// <param name="dModel">嵌入向量维度 d_model</param>
     public Embedding(int vocabSize, int dModel)
     {
         _table = MatrixHelper.Zeros(vocabSize, dModel);
@@ -48,6 +53,9 @@ public class Embedding
         MatrixHelper.ScatterAddIntoRows(_gradTable, ids, dLdOut);
     }
 
+    /// <summary>获取当前嵌入权重矩阵（参数）。</summary>
     public float[][] GetTable() => _table;
+
+    /// <summary>获取嵌入权重的梯度矩阵（在 Backward 后累加得到）。</summary>
     public float[][] GetGradTable() => _gradTable;
 }

@@ -76,11 +76,19 @@ static class Program
         }
     }
 
+    /// <summary>
+    /// 使用默认模型目录执行一次数字加一任务的推理示例。
+    /// 相当于调用 <see cref="RunInfer(string)"/>，目录固定为 <see cref="ModelDir"/>。
+    /// </summary>
     static void Run()
     {
         RunInfer(ModelDir);
     }
 
+    /// <summary>
+    /// 加载指定目录下保存的数字任务 Transformer 模型，并对若干固定样例做推理演示。
+    /// </summary>
+    /// <param name="dir">模型保存目录（包含 config/weights/vocab 等文件）</param>
     static void RunInfer(string dir)
     {
         Console.WriteLine("--- 推理示例（加载已保存模型） ---\n");
@@ -135,6 +143,10 @@ static class Program
     }
 #endif
 
+    /// <summary>
+    /// 生成三国问答 JSONL 训练/验证集文件。
+    /// 优先写入当前工作目录下的 data 目录，若不存在则写入运行时基目录下的 data 目录。
+    /// </summary>
     static void SanguoDataGeneration()
     {
         // 优先写入当前目录（项目 data），便于版本管理；否则写入运行目录下 data
@@ -147,6 +159,10 @@ static class Program
         Console.WriteLine($"已生成: 训练集 {trainPath} (1000 条), 验证集 {validPath} (200 条)");
     }
 
+    /// <summary>
+    /// 使用纯 C# CPU 版本的 Transformer 在三国问答任务上进行训练：
+    /// 读取 JSONL 数据、构造词表与模型，按指定 epoch 反向传播训练并在验证集上评估 loss，最后将模型与词表落盘。
+    /// </summary>
     static void TrainSanguo()
     {
         var (trainPath, validPath) = GetSanguoDataPaths();
@@ -187,6 +203,12 @@ static class Program
         Console.WriteLine("或: dotnet run -- ask " + SanguoModelDir);
     }
 
+    /// <summary>
+    /// 数字加一玩具任务训练入口：
+    /// 1. 构造 0~9 的字符词表与随机生成的训练/验证样本；
+    /// 2. 搭建一个小型 Transformer（可选 SPSA 数值梯度或标准反向传播）；
+    /// 3. 训练若干 epoch 并在验证集上评估，再保存模型并打印若干预测样例。
+    /// </summary>
     static void Train()
     {
         bool useSpsa = false;

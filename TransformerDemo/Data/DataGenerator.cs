@@ -16,17 +16,29 @@ namespace TransformerDemo;
 /// </summary>
 public static class DataGenerator
 {
+    /// <summary>生成样本时序列的最小长度。</summary>
     public const int MinSeqLen = 5;
+    /// <summary>生成样本时序列的最大长度。</summary>
     public const int MaxSeqLen = 10;
+    /// <summary>训练集样本数量。</summary>
     public const int TrainCount = 1000;
+    /// <summary>验证集样本数量。</summary>
     public const int ValidCount = 200;
 
     /// <summary>单条样本：原始输入序列、目标序列（已含加一后的数字，未加特殊 token）</summary>
     public record Sample(int[] Input, int[] Target);
 
+    /// <summary>用于随机生成样本的伪随机数发生器，固定种子保证结果可复现。</summary>
     private static readonly Random Rng = new(42);
 
     /// <summary>生成一条随机样本：输入长度在 [MinSeqLen, MaxSeqLen]，每个元素 0~9；目标为每元素+1（模10）</summary>
+    /// <summary>
+    /// 随机生成一条“数字加一”任务样本。
+    /// </summary>
+    /// <returns>
+    /// 返回包含原始输入序列和目标序列的 <see cref="Sample"/>：
+    /// 输入为长度在 [MinSeqLen, MaxSeqLen] 内的 0~9 序列，目标为对每一位做 +1 (mod 10)。
+    /// </returns>
     public static Sample GenerateOne()
     {
         int len = Rng.Next(MinSeqLen, MaxSeqLen + 1);
@@ -41,6 +53,13 @@ public static class DataGenerator
     }
 
     /// <summary>生成训练集与验证集</summary>
+    /// <summary>
+    /// 批量生成训练集与验证集样本。
+    /// </summary>
+    /// <returns>
+    /// 一个二元组：(train, valid)，其中 train/valid 都是样本列表，
+    /// 大小分别为 <see cref="TrainCount"/> 和 <see cref="ValidCount"/>。
+    /// </returns>
     public static (List<Sample> train, List<Sample> valid) GenerateAll()
     {
         var train = new List<Sample>();

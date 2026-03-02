@@ -13,6 +13,12 @@ public class DecoderLayer
     private readonly PositionwiseFeedForward _ffn;
     private readonly LayerNorm _norm1, _norm2, _norm3;
 
+    /// <summary>
+    /// 构造一个标准 Transformer 解码器层（包含自注意力、交叉注意力和前馈网络三部分）。
+    /// </summary>
+    /// <param name="dModel">隐藏维度 d_model</param>
+    /// <param name="numHeads">注意力头数</param>
+    /// <param name="dFf">前馈网络隐藏层维度</param>
     public DecoderLayer(int dModel, int numHeads, int dFf)
     {
         _selfAttn = new MultiHeadAttention(dModel, numHeads);
@@ -23,6 +29,14 @@ public class DecoderLayer
         _norm3 = new LayerNorm(dModel);
     }
 
+    /// <summary>
+    /// 前向传播：Masked Self-Attention + Add &amp; Norm + Cross-Attention + Add &amp; Norm + FFN + Add &amp; Norm。
+    /// </summary>
+    /// <param name="decInput">解码器输入 (batch, decLen, d_model)</param>
+    /// <param name="encOutput">编码器输出 (batch, encLen, d_model)</param>
+    /// <param name="decPaddingMask">解码端 padding 掩码 (batch, decLen, decLen)，可为 null</param>
+    /// <param name="encPaddingMask">编码端 padding 掩码 (batch, decLen, encLen)，可为 null</param>
+    /// <returns>同形状的解码器层输出</returns>
     public float[][][] Forward(float[][][] decInput, float[][][] encOutput, bool[][][]? decPaddingMask, bool[][][]? encPaddingMask)
     {
         int decLen = decInput[0].Length;
@@ -85,6 +99,9 @@ public class DecoderLayer
         _ffn.ZeroGrad();
     }
 
+    /// <summary>
+    /// 逐元素相加两个 3D 张量：c[b] = a[b] + b[b]。
+    /// </summary>
     private static float[][][] Add3D(float[][][] a, float[][][] b)
     {
         var c = new float[a.Length][][];
@@ -93,6 +110,9 @@ public class DecoderLayer
         return c;
     }
 
+    /// <summary>
+    /// 就地对 3D 张量做逐元素加法：target[b] += b[b]。
+    /// </summary>
     private static void AddInPlace3(float[][][] target, float[][][] b)
     {
         for (int i = 0; i < target.Length; i++)

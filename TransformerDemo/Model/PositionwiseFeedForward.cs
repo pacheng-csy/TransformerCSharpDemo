@@ -16,6 +16,11 @@ public class PositionwiseFeedForward
     private float[][][]? _lastX;
     private float[][][]? _lastPreRelu;  // W1*x，ReLU 前
 
+    /// <summary>
+    /// 构造前馈网络层，内部包含两层线性变换 W1/W2 以及对应的梯度缓冲。
+    /// </summary>
+    /// <param name="dModel">输入/输出特征维度 d_model</param>
+    /// <param name="dFf">中间隐藏层维度 d_ff</param>
     public PositionwiseFeedForward(int dModel, int dFf)
     {
         _dModel = dModel;
@@ -28,6 +33,9 @@ public class PositionwiseFeedForward
         MatrixHelper.XavierUniform(_w2);
     }
 
+    /// <summary>
+    /// 将两层线性权重的梯度清零，在每轮 Backward 之前调用。
+    /// </summary>
     public void ZeroGrad()
     {
         for (int i = 0; i < _gradW1.Length; i++)
@@ -38,6 +46,11 @@ public class PositionwiseFeedForward
                 _gradW2[i][j] = 0;
     }
 
+    /// <summary>
+    /// 前向传播：对每个位置独立执行 x → W1 → ReLU → W2。
+    /// </summary>
+    /// <param name="x">输入张量 (batch, seqLen, d_model)</param>
+    /// <returns>同形状的前馈网络输出</returns>
     public float[][][] Forward(float[][][] x)
     {
         var preRelu = MatrixHelper.MultiplyBatch3D(x, _w1);

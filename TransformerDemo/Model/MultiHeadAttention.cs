@@ -30,6 +30,11 @@ public class MultiHeadAttention
     private float[][][]? _lastQ, _lastK, _lastV, _lastQProj, _lastKProj, _lastVProj, _lastConcat;
     private float[][][][]? _lastHeadAttn;
 
+    /// <summary>
+    /// 构造多头注意力层，内部创建 4 个线性变换矩阵 W_Q / W_K / W_V / W_O 并做 Xavier 初始化。
+    /// </summary>
+    /// <param name="dModel">总特征维度 d_model</param>
+    /// <param name="numHeads">注意力头数，要求能整除 d_model</param>
     public MultiHeadAttention(int dModel, int numHeads)
     {
         _dModel = dModel;
@@ -54,6 +59,9 @@ public class MultiHeadAttention
         MatrixHelper.XavierUniform(_wO);
     }
 
+    /// <summary>
+    /// 将所有权重矩阵的梯度清零，在每次反向传播更新前调用。
+    /// </summary>
     public void ZeroGrad()
     {
         foreach (var g in new[] { _gradWQ, _gradWK, _gradWV, _gradWO })
@@ -120,6 +128,12 @@ public class MultiHeadAttention
         return (dLdQ, dLdK, dLdV);
     }
 
+    /// <summary>
+    /// 从完整张量中切出第 head 个注意力头对应的子向量区域。
+    /// </summary>
+    /// <param name="x">输入张量 (batch, seq, d_model)</param>
+    /// <param name="head">头索引 [0, _numHeads)</param>
+    /// <returns>形状为 (batch, seq, d_k) 的子张量</returns>
     private float[][][] SliceHead(float[][][] x, int head)
     {
         int batch = x.Length, seq = x[0].Length;
@@ -132,6 +146,11 @@ public class MultiHeadAttention
         return out_;
     }
 
+    /// <summary>
+    /// 将所有头在最后一维上拼接回 d_model 维度。
+    /// </summary>
+    /// <param name="headOutputs">每个头的输出，长度为 numHeads，单个为 (batch, seq, d_k)</param>
+    /// <returns>拼接后的张量 (batch, seq, d_model)</returns>
     private float[][][] ConcatHeads(float[][][][] headOutputs)
     {
         int batch = headOutputs[0].Length, seq = headOutputs[0][0].Length;
@@ -147,6 +166,9 @@ public class MultiHeadAttention
         return out_;
     }
 
+    /// <summary>
+    /// 将单个头的梯度累加回完整梯度张量对应的切片位置。
+    /// </summary>
     private void CopyHeadInto(float[][][] full, float[][][] headGrad, int head)
     {
         int start = head * _dK;

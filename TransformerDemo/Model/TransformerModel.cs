@@ -21,6 +21,16 @@ public class TransformerModel
     private readonly int _numHeads;
     private readonly int _dFf;
 
+    /// <summary>
+    /// 构造一个完整的 Transformer 编码器-解码器模型。
+    /// </summary>
+    /// <param name="vocabSize">词表大小（输出类别数）</param>
+    /// <param name="dModel">模型隐藏维度 d_model</param>
+    /// <param name="numHeads">多头注意力头数</param>
+    /// <param name="dFf">前馈网络隐藏层维度</param>
+    /// <param name="numEncoderLayers">Encoder 堆叠层数</param>
+    /// <param name="numDecoderLayers">Decoder 堆叠层数</param>
+    /// <param name="maxLen">支持的最大序列长度（用于位置编码与 mask）</param>
     public TransformerModel(int vocabSize, int dModel, int numHeads, int dFf, int numEncoderLayers, int numDecoderLayers, int maxLen)
     {
         _vocabSize = vocabSize;
@@ -163,7 +173,9 @@ public class TransformerModel
         return flat;
     }
 
+    /// <summary>模型使用的词表大小（输出类别数）。</summary>
     public int VocabSize => _vocabSize;
+    /// <summary>当前模型支持的最大序列长度（由构造函数传入）。</summary>
     public int MaxLen { get; private set; }
 
     /// <summary>将模型保存到指定目录：config.txt 存超参，weights.bin 存所有权重（与 GetAllParameters 顺序一致）。</summary>

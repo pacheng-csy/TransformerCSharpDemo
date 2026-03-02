@@ -12,6 +12,12 @@ public class EncoderLayer
     private readonly PositionwiseFeedForward _ffn;
     private readonly LayerNorm _norm1, _norm2;
 
+    /// <summary>
+    /// 构造一个标准 Transformer 编码器层。
+    /// </summary>
+    /// <param name="dModel">隐藏维度 d_model</param>
+    /// <param name="numHeads">自注意力头数</param>
+    /// <param name="dFf">前馈网络隐藏层维度</param>
     public EncoderLayer(int dModel, int numHeads, int dFf)
     {
         _selfAttn = new MultiHeadAttention(dModel, numHeads);
@@ -20,6 +26,12 @@ public class EncoderLayer
         _norm2 = new LayerNorm(dModel);
     }
 
+    /// <summary>
+    /// 前向传播：Self-Attention + Add &amp; Norm + FFN + Add &amp; Norm。
+    /// </summary>
+    /// <param name="x">输入张量 (batch, seqLen, d_model)</param>
+    /// <param name="paddingMask">Padding 掩码 (batch, seqLen, seqLen)，true 表示允许关注，false 为屏蔽；可为 null</param>
+    /// <returns>同形状的编码器输出</returns>
     public float[][][] Forward(float[][][] x, bool[][][]? paddingMask)
     {
         // Self-Attention + Add & Norm
@@ -52,6 +64,9 @@ public class EncoderLayer
         _ffn.ZeroGrad();
     }
 
+    /// <summary>
+    /// 逐元素相加两个 3D 张量：c[b] = a[b] + b[b]。
+    /// </summary>
     private static float[][][] Add3D(float[][][] a, float[][][] b)
     {
         var c = new float[a.Length][][];
@@ -60,6 +75,9 @@ public class EncoderLayer
         return c;
     }
 
+    /// <summary>
+    /// 就地对 3D 张量做逐元素加法：target[b] += b[b]。
+    /// </summary>
     private static void AddInPlace3(float[][][] target, float[][][] b)
     {
         for (int i = 0; i < target.Length; i++)

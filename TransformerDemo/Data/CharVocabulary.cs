@@ -21,8 +21,13 @@ public class CharVocabulary
     private readonly Dictionary<char, int> _charToId;
     private readonly List<char?> _idToChar; // [0]=PAD, [1]=SOS, [2]=EOS, 之后为字符
 
+    /// <summary>词表总大小（包含 PAD/SOS/EOS 与所有普通字符）。</summary>
     public int Size => _idToChar.Count;
 
+    /// <summary>
+    /// 创建一个空的字符级词表实例。
+    /// 调用方通常先 new，再通过 <see cref="BuildFromTexts(IEnumerable{string})"/> 从语料中构建映射。
+    /// </summary>
     public CharVocabulary()
     {
         _charToId = new Dictionary<char, int>();
@@ -99,7 +104,10 @@ public class CharVocabulary
         return sb.ToString();
     }
 
+    /// <summary>判断给定 token id 是否为 [PAD]。</summary>
     public bool IsPad(int tokenId) => tokenId == PadId;
+
+    /// <summary>判断给定 token id 是否为特殊标记（[SOS] 或 [EOS]）。</summary>
     public bool IsSpecial(int tokenId) => tokenId == SosId || tokenId == EosId;
 
     /// <summary>保存词表到目录：vocab.json 存字符列表（与训练时模型同目录，便于推理加载）。</summary>

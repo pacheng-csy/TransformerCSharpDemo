@@ -14,6 +14,11 @@ public class LayerNorm
     private float[][]? _lastMean;
     private float[][]? _lastVar;
 
+    /// <summary>
+    /// 构造 LayerNorm 模块，内部不含可学习参数，仅保存维度与数值稳定项。
+    /// </summary>
+    /// <param name="dModel">最后一维大小（特征维度）</param>
+    /// <param name="eps">用于防止除零的极小常数</param>
     public LayerNorm(int dModel, float eps = 1e-6f)
     {
         _dModel = dModel;

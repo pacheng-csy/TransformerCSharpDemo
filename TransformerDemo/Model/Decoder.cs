@@ -11,6 +11,14 @@ public class Decoder
     private readonly PositionalEncoding _pe;
     private readonly DecoderLayer[] _layers;
 
+    /// <summary>
+    /// 构造解码器，由多个 <see cref="DecoderLayer"/> 堆叠而成，并共享一套位置编码。
+    /// </summary>
+    /// <param name="dModel">隐藏维度 d_model</param>
+    /// <param name="numHeads">注意力头数</param>
+    /// <param name="dFf">前馈网络隐藏层维度</param>
+    /// <param name="numLayers">解码器层数</param>
+    /// <param name="maxLen">支持的最大序列长度</param>
     public Decoder(int dModel, int numHeads, int dFf, int numLayers, int maxLen)
     {
         _pe = new PositionalEncoding(maxLen, dModel);
@@ -19,6 +27,14 @@ public class Decoder
             _layers[i] = new DecoderLayer(dModel, numHeads, dFf);
     }
 
+    /// <summary>
+    /// 前向传播：先加位置编码，再依次通过每一层 <see cref="DecoderLayer"/>。
+    /// </summary>
+    /// <param name="decInput">解码器输入 (batch, decLen, d_model)</param>
+    /// <param name="encOutput">编码器输出 (batch, encLen, d_model)</param>
+    /// <param name="decPaddingMask">解码端 padding 掩码 (batch, decLen, decLen)，可为 null</param>
+    /// <param name="encPaddingMask">编码端 padding 掩码 (batch, decLen, encLen)，可为 null</param>
+    /// <returns>解码器堆叠后的最终输出</returns>
     public float[][][] Forward(float[][][] decInput, float[][][] encOutput, bool[][][]? decPaddingMask, bool[][][]? encPaddingMask)
     {
         decInput = _pe.Forward(decInput);

@@ -56,6 +56,9 @@ public static class SanguoInference
         return vocab.DecodeIds(outputIds.ToArray());
     }
 
+    /// <summary>
+    /// 返回一维数组中最大值所在的索引，用于从 logits 选出概率最高的 token。
+    /// </summary>
     private static int Argmax(float[] a)
     {
         int best = 0;

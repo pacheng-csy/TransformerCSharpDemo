@@ -12,6 +12,12 @@ public static class MatrixHelper
 
     // ----- 创建与形状 -----
 
+    /// <summary>
+    /// 创建一个二维零矩阵，所有元素初始化为 0。
+    /// </summary>
+    /// <param name="rows">行数（第一维长度）</param>
+    /// <param name="cols">列数（第二维长度）</param>
+    /// <returns>形状为 (rows, cols) 的二维数组</returns>
     public static float[][] Zeros(int rows, int cols)
     {
         var m = new float[rows][];
@@ -22,6 +28,13 @@ public static class MatrixHelper
         return m;
     }
 
+    /// <summary>
+    /// 创建一个三维零张量，通常用于批量 (batch, rows, cols) 的中间结果缓冲。
+    /// </summary>
+    /// <param name="batch">批大小</param>
+    /// <param name="rows">每个样本的行数</param>
+    /// <param name="cols">每个样本的列数</param>
+    /// <returns>形状为 (batch, rows, cols) 的三维数组</returns>
     public static float[][][] Zeros3(int batch, int rows, int cols)
     {
         var t = new float[batch][][];
@@ -30,6 +43,13 @@ public static class MatrixHelper
         return t;
     }
 
+    /// <summary>
+    /// 创建一个二维矩阵并用指定常数填充。
+    /// </summary>
+    /// <param name="rows">行数</param>
+    /// <param name="cols">列数</param>
+    /// <param name="value">初始填充值，默认 0</param>
+    /// <returns>元素全部为 value 的矩阵</returns>
     public static float[][] Create(int rows, int cols, float value = 0f)
     {
         var m = new float[rows][];
@@ -41,6 +61,11 @@ public static class MatrixHelper
         return m;
     }
 
+    /// <summary>
+    /// 深拷贝二维矩阵，返回新的数组实例。
+    /// </summary>
+    /// <param name="a">源矩阵</param>
+    /// <returns>内容相同但引用独立的矩阵</returns>
     public static float[][] Copy(float[][] a)
     {
         int rows = a.Length, cols = a[0].Length;
@@ -53,6 +78,11 @@ public static class MatrixHelper
         return m;
     }
 
+    /// <summary>
+    /// 深拷贝三维张量，逐 batch 调用 <see cref="Copy(float[][])"/>。
+    /// </summary>
+    /// <param name="a">源三维张量</param>
+    /// <returns>内容相同但引用独立的新张量</returns>
     public static float[][][] Copy3(float[][][] a)
     {
         var t = new float[a.Length][][];
@@ -70,6 +100,10 @@ public static class MatrixHelper
                 w[i][j] = (float)(Rng.NextDouble() * 2 * bound - bound);
     }
 
+    /// <summary>
+    /// 使用 Xavier 均匀分布初始化参数矩阵，自动根据行列数推导 fanIn/fanOut。
+    /// </summary>
+    /// <param name="w">待初始化的权重矩阵 (outDim, inDim)</param>
     public static void XavierUniform(float[][] w)
     {
         int fanIn = w[0].Length, fanOut = w.Length;
@@ -104,6 +138,11 @@ public static class MatrixHelper
         return out_;
     }
 
+    /// <summary>
+    /// 计算二维矩阵转置，行列互换。
+    /// </summary>
+    /// <param name="a">输入矩阵 (rows, cols)</param>
+    /// <returns>转置后的矩阵 (cols, rows)</returns>
     public static float[][] Transpose(float[][] a)
     {
         int rows = a.Length, cols = a[0].Length;
@@ -119,6 +158,12 @@ public static class MatrixHelper
 
     // ----- 逐元素运算 -----
 
+    /// <summary>
+    /// 按元素逐位相加：c = a + b。
+    /// </summary>
+    /// <param name="a">左操作数矩阵</param>
+    /// <param name="b">右操作数矩阵，形状需与 a 一致</param>
+    /// <returns>逐元素相加后的新矩阵</returns>
     public static float[][] Add(float[][] a, float[][] b)
     {
         int rows = a.Length, cols = a[0].Length;
@@ -132,6 +177,11 @@ public static class MatrixHelper
         return c;
     }
 
+    /// <summary>
+    /// 就地加法：target[i][j] += b[i][j]，直接修改 target 引用的数据。
+    /// </summary>
+    /// <param name="target">被累加的目标矩阵</param>
+    /// <param name="b">要加上的矩阵，形状需与 target 一致</param>
     public static void AddInPlace(float[][] target, float[][] b)
     {
         for (int i = 0; i < target.Length; i++)
@@ -139,6 +189,12 @@ public static class MatrixHelper
                 target[i][j] += b[i][j];
     }
 
+    /// <summary>
+    /// 按标量缩放矩阵：r = a * c。
+    /// </summary>
+    /// <param name="a">输入矩阵</param>
+    /// <param name="c">缩放系数</param>
+    /// <returns>每个元素都乘以 c 的新矩阵</returns>
     public static float[][] Scale(float[][] a, float c)
     {
         int rows = a.Length, cols = a[0].Length;
@@ -152,6 +208,12 @@ public static class MatrixHelper
         return r;
     }
 
+    /// <summary>
+    /// 逐元素乘法：r[i][j] = a[i][j] * b[i][j]。
+    /// </summary>
+    /// <param name="a">左操作数矩阵</param>
+    /// <param name="b">右操作数矩阵，形状需与 a 一致</param>
+    /// <returns>逐元素乘积矩阵</returns>
     public static float[][] ElementMul(float[][] a, float[][] b)
     {
         int rows = a.Length, cols = a[0].Length;
@@ -165,6 +227,11 @@ public static class MatrixHelper
         return r;
     }
 
+    /// <summary>
+    /// 对矩阵的每个元素取平方根，常用于方差/方差加 eps 后的标准差计算。
+    /// </summary>
+    /// <param name="a">输入矩阵</param>
+    /// <returns>逐元素开方后的新矩阵</returns>
     public static float[][] Sqrt(float[][] a)
     {
         int rows = a.Length, cols = a[0].Length;
@@ -230,6 +297,16 @@ public static class MatrixHelper
 
     /// <summary>生成 Padding Mask：validLengths[b] 表示第 b 个序列的有效长度，其余为 pad。
     /// 返回 (batch, seqLen, seqLen)：attnMask[b][i][j] = (i &lt; validLen &amp;&amp; j &lt; validLen)。</summary>
+    /// <summary>
+    /// 构造 Encoder/Decoder 的 padding 掩码：根据每个样本的有效长度，标记哪些位置是实际 token，哪些位置是 PAD。
+    /// </summary>
+    /// <param name="batch">批大小</param>
+    /// <param name="seqLen">序列统一的最大长度</param>
+    /// <param name="validLengths">每个样本的真实有效长度（不含 PAD）</param>
+    /// <returns>
+    /// 三维布尔张量 (batch, seqLen, seqLen)，
+    /// 其中 mask[b][i][j] 表示第 b 个样本中，第 i 个查询位置是否可以看到第 j 个键位置。
+    /// </returns>
     public static bool[][][] CreatePaddingMask(int batch, int seqLen, int[] validLengths)
     {
         var mask = new bool[batch][][];
@@ -248,6 +325,11 @@ public static class MatrixHelper
     }
 
     /// <summary>因果 Mask（解码器自注意力）：下三角为 true，上三角为 false，防止看到未来位置。</summary>
+    /// <summary>
+    /// 为解码器自注意力构造标准的“下三角”因果 Mask，保证当前位置只能看到自己和过去的位置。
+    /// </summary>
+    /// <param name="seqLen">序列最大长度</param>
+    /// <returns>二维布尔矩阵 (seqLen, seqLen)，下三角含对角线为 true，上三角为 false</returns>
     public static bool[][] CreateCausalMask(int seqLen)
     {
         var mask = new bool[seqLen][];

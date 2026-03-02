@@ -29,6 +29,9 @@ public static class SanguoQaDataGenerator
         WriteJsonl(validPath, all, trainCount, validCount);
     }
 
+    /// <summary>
+    /// 就地打乱问答对列表（Fisher-Yates 洗牌），保证后续划分 train/valid 时分布更均匀。
+    /// </summary>
     private static void Shuffle(List<(string q, string a)> list)
     {
         for (int i = list.Count - 1; i > 0; i--)
@@ -38,6 +41,13 @@ public static class SanguoQaDataGenerator
         }
     }
 
+    /// <summary>
+    /// 将指定区间的问答对写入 JSONL 文件，每行一个 { "question": ..., "answer": ... }。
+    /// </summary>
+    /// <param name="path">输出文件路径</param>
+    /// <param name="list">完整问答对列表</param>
+    /// <param name="start">起始下标（包含）</param>
+    /// <param name="count">写入条数</param>
     private static void WriteJsonl(string path, List<(string q, string a)> list, int start, int count)
     {
         using var sw = new StreamWriter(path, false, System.Text.Encoding.UTF8);
@@ -49,6 +59,10 @@ public static class SanguoQaDataGenerator
         }
     }
 
+    /// <summary>
+    /// 构造三国演义相关的问答对列表，包括人物、战役、典故、地点、因果关系等，数量接近或超过 1200 条。
+    /// </summary>
+    /// <returns>包含 (question, answer) 元组的列表</returns>
     private static List<(string q, string a)> BuildAllPairs()
     {
         var list = new List<(string q, string a)>();
