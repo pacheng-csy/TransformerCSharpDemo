@@ -1,0 +1,49 @@
+graph TD
+    A[Program.cs<br/>入口] --> B[Data 层]
+    A --> C[Model 层]
+    A --> D[Training 层]
+    A --> E[Inference 层]
+    A --> F[GPU 扩展]
+
+    subgraph Data[Data & data/]
+        B1[Vocabulary<br/>数字任务词表]
+        B2[DataGenerator<br/>数字样本生成+预处理]
+        B3[CharVocabulary<br/>字符级词表]
+        B4[SanguoQaDataLoader<br/>JSONL 加载与编码]
+        B5[SanguoQaDataGenerator<br/>自动生成问答数据]
+        B6[data/sanguo_qa_*.jsonl<br/>训练/验证数据]
+    end
+
+    subgraph Model[Model]
+        M1[Embedding]
+        M2[PositionalEncoding]
+        M3[ScaledDotProductAttention]
+        M4[MultiHeadAttention]
+        M5[LayerNorm]
+        M6[PositionwiseFeedForward]
+        M7[EncoderLayer & DecoderLayer]
+        M8[Encoder & Decoder]
+        M9[TransformerModel]
+    end
+
+    subgraph Training[Training]
+        T1[Training.cs<br/>TrainEpoch/Validate]
+        T2[Evaluation.cs<br/>评估指标]
+    end
+
+    subgraph Inference[Inference]
+        I1[InferenceExample<br/>数字推理示例]
+        I2[SanguoInference<br/>Ask & RunInteractive]
+    end
+
+    subgraph GPU[GPU 扩展]
+        G1[SanguoGpuTrainer<br/>TorchSharp 训练+导出权重]
+    end
+
+    B --> M9
+    M9 --> T1
+    T1 --> T2
+    T1 --> M9
+    I1 --> M9
+    I2 --> M9
+    G1 --> M9

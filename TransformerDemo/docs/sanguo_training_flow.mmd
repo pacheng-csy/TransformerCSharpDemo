@@ -1,0 +1,25 @@
+flowchart TD
+    %% CPU 训练
+    A[命令: sanguo] --> B[Program.TrainSanguo]
+    B --> C[GetSanguoDataPaths<br/>解析 data 或 Data 目录]
+    C --> D[SanguoQaDataLoader.Load<br/>ReadJsonl + 构建 CharVocabulary]
+    D --> E[构造 TransformerModel<br/>dModel=64, numHeads=2, ...]
+    E --> F[epoch 循环]
+    F --> G[DataGenerator.BatchesTokenized<br/>添加 SOS/EOS/PAD]
+    G --> H[Training.TrainEpochBackpropTokenized]
+    H --> I[Training.ValidateTokenized]
+    I --> F
+    F --> J[保存模型与词表<br/>输出目录 SanguoModel]
+    J --> K[TransformerModel.SaveToDirectory]
+    J --> L[CharVocabulary.SaveToDirectory]
+
+    %% GPU 训练
+    A2[命令: sanguo gpu] --> B2[Program.TrainSanguoGpu]
+    B2 --> C2[GetSanguoDataPaths]
+    C2 --> D2[SanguoQaDataLoader.Load]
+    D2 --> E2[SanguoGpuTrainer.TrainOnGpu]
+    E2 --> F2[DataGenerator.BatchesTokenized<br/>在 GPU 上循环训练]
+    F2 --> G2[验证 loss 输出]
+    G2 --> H2[ExportToCSharpFormat<br/>映射权重到 C# 模型]
+    H2 --> I2[TransformerModel.SaveToDirectory]
+    H2 --> J2[CharVocabulary.SaveToDirectory]

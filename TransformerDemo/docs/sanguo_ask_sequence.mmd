@@ -1,0 +1,35 @@
+sequenceDiagram
+    participant User as 用户
+    participant Prog as Program
+    participant SI as SanguoInference
+    participant TM as TransformerModel
+    participant V as CharVocabulary
+
+    User->>Prog: dotnet run -- ask [SanguoModel]
+    Prog->>SI: RunInteractive(modelDir)
+    SI->>SI: LoadFromDirectory(modelDir)<br/>加载模型与 vocab.json
+    SI-->>User: 提示输入问题
+
+    loop 交互问答循环
+        User->>SI: 输入中文问题 q
+        SI->>V: EncodeText(q)
+        V-->>SI: question_ids
+        SI->>SI: 构造 encIds = [SOS] + ids + [EOS] + PAD
+        SI->>TM: Forward(encBatch, decBatch(SOS+PAD), encValid, decValid(step=1))
+        TM-->>SI: logits(step=0)
+
+        loop 自回归解码
+            SI->>SI: 从 logits[step] 取 argmax 得到 nextId
+            alt nextId == EOS
+                SI->>SI: 停止解码
+            else
+                SI->>SI: decIds[step+1] = nextId<br/>outputIds.Add(nextId)
+                SI->>TM: Forward(encBatch, decBatch, encValid, decValid)
+                TM-->>SI: logits(更新后的 step)
+            end
+        end
+
+        SI->>V: DecodeIds(outputIds)
+        V-->>SI: answer 文本
+        SI-->>User: 输出“答: answer”
+    end

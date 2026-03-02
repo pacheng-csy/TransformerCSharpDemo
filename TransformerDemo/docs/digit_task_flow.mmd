@@ -1,0 +1,24 @@
+flowchart TD
+    A[命令: train] --> B[Program.Train]
+    B --> C[GenerateAll]
+    C --> D[构造 Vocabulary]
+    D --> E[构造 TransformerModel]
+    E --> F[epoch 循环]
+    F --> G[DataGenerator.Batches<br/>添加 SOS/EOS/PAD]
+    G --> H[Training.TrainStepBackprop<br/>Forward + Loss + Backward + SGD]
+    H --> I[遍历所有 batch]
+    I --> J[Training.Validate<br/>验证集 loss]
+    J --> F
+    F --> K[Evaluation.EvaluateOnValidation<br/>loss/TokenAcc/SeqAcc]
+    K --> L[保存模型 SavedModel]
+
+    %% 推理
+    M[命令: infer] --> N[Program.RunInfer]
+    N --> O[InferenceExample.Run]
+    O --> P[TransformerModel.LoadFromDirectory]
+    P --> Q[构造示例输入序列]
+    Q --> R[DataGenerator.Preprocess]
+    R --> S[model.Forward]
+    S --> T[Argmax 取预测 token]
+    T --> U[vocab.DecodeToDigit]
+    U --> V[打印 输入 / 期望 / 预测]
