@@ -6,6 +6,21 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>TransformerDemo</RootNamespace>
+    <Configurations>Debug;Release;USE_TORCHSHARP_GPU</Configurations>
   </PropertyGroup>
+
+  <!-- GPU 训练（RTX 4070 等）：编译时加 -p:UseGpu=true，运行: dotnet run sanguo gpu -->
+  <ItemGroup Condition="'$(UseGpu)' == 'true'">
+    <PackageReference Include="TorchSharp" Version="0.105.0" />
+    <PackageReference Include="libtorch-cuda-12.1-win-x64" Version="2.5.1" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(UseGpu)' == 'true'">
+    <DefineConstants>$(DefineConstants);USE_TORCHSHARP_GPU</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="data\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Data\sanguo_qa_*.jsonl" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
 </Project>

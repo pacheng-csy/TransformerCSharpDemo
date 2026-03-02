@@ -186,6 +186,38 @@ public static class Training
         return batchCount > 0 ? totalLoss / batchCount : 0;
     }
 
+    /// <summary>训练一个 epoch（已 token 化样本）：使用 BatchesTokenized，反向传播 + SGD。</summary>
+    public static float TrainEpochBackpropTokenized(
+        TransformerModel model,
+        IReadOnlyList<DataGenerator.Sample> trainData,
+        int maxLen, int batchSize, float lr)
+    {
+        float totalLoss = 0;
+        int batchCount = 0;
+        foreach (var (inputIds, targetIds, validLengths) in DataGenerator.BatchesTokenized(trainData, maxLen, batchSize))
+        {
+            totalLoss += TrainStepBackprop(model, inputIds, targetIds, validLengths, validLengths, targetIds, lr);
+            batchCount++;
+        }
+        return batchCount > 0 ? totalLoss / batchCount : 0;
+    }
+
+    /// <summary>验证（已 token 化样本）：使用 BatchesTokenized，只计算平均 loss。</summary>
+    public static float ValidateTokenized(
+        TransformerModel model,
+        IReadOnlyList<DataGenerator.Sample> validData,
+        int maxLen, int batchSize)
+    {
+        float totalLoss = 0;
+        int batchCount = 0;
+        foreach (var (inputIds, targetIds, validLengths) in DataGenerator.BatchesTokenized(validData, maxLen, batchSize))
+        {
+            totalLoss += ComputeLoss(model, inputIds, targetIds, validLengths, validLengths, targetIds);
+            batchCount++;
+        }
+        return batchCount > 0 ? totalLoss / batchCount : 0;
+    }
+
     /// <summary>Token 级准确率（忽略 PAD）：预测 id 与 target 一致的比例。</summary>
     public static float TokenAccuracy(
         TransformerModel model,

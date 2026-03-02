@@ -1,62 +1,190 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
 namespace TransformerDemo;
 
 /// <summary>
-/// 程序入口，支持三种运行模式：
-/// 1. 推理模式（infer）：加载已保存的模型权重，仅做前向推理演示，不训练；
-/// 2. 训练模式（默认）：使用反向传播 + SGD 训练一个小型 Transformer，保存模型并打印预测样例；
-/// 3. 训练模式（spsa）：使用 SPSA 数值梯度优化训练，便于对比理解“无反向传播”时的收敛情况。
-/// 超参数偏小（dModel=8、单层等），方便初学者快速跑通并观察 loss 下降。
+/// 程序入口，支持多种运行模式：
+/// 1. 默认：推理示例（数字加一任务）；
+/// 2. infer [目录]：加载已保存模型做推理；
+/// 3. train：数字加一任务训练；
+/// 4. sanguo：三国演义问答训练（从 data/sanguo_qa_*.jsonl 加载数据）。
 /// </summary>
 static class Program
 {
-    // ---------- 序列与数据 ----------
-    /// <summary>序列最大长度。格式为 [SOS] + 最多 10 个数字 + [EOS] + PAD 填充至该长度。</summary>
+    // ---------- 数字任务 ----------
     const int MaxLen = 14;
-
-    /// <summary>每个 batch 的样本数。越大则 loss 曲线越平滑，但单步计算量增加。</summary>
     const int BatchSize = 64;
-
-    // ---------- 训练轮数与优化器 ----------
-    /// <summary>训练轮数（一个 epoch = 完整遍历一遍训练集）。反向传播下约 80 轮即可收敛。</summary>
     const int Epochs = 80;
-
-    /// <summary>SGD 学习率，用于反向传播模式。过大易发散，过小收敛慢。</summary>
     const float LrSgd = 0.1f;
-
-    /// <summary>SPSA 模式下的学习率（仅当命令行传入 "spsa" 时使用）。</summary>
     const float LrSpsa = 0.05f;
-
-    /// <summary>SPSA 的扰动步长 epsilon，用于数值估计梯度方向。</summary>
     const float Eps = 0.03f;
-
-    /// <summary>模型权重与配置的保存目录（相对可执行文件）。</summary>
     const string ModelDir = "SavedModel";
+
+    // ---------- 三国问答任务 ----------
+    const int SanguoMaxLen = 128;
+    const int SanguoBatchSize = 8;
+    const int SanguoEpochs = 50;
+    const float SanguoLr = 0.1f;
+    const string SanguoModelDir = "SanguoModel";
 
     static void Main(string[] args)
     {
-        Run();
-        //Train();
+        args = new string[] { "ask" };
+        if (args.Length > 0 && args[0] == "sanguo")
+        {
+            bool useGpu = args.Length > 1 && (args[1] == "gpu" || args[1] == "--gpu");
+            if (useGpu)
+            {
+#if USE_TORCHSHARP_GPU
+                TrainSanguoGpu();
+#else
+                Console.WriteLine("GPU 训练未启用。请先执行: dotnet build -p:UseGpu=true");
+                Console.WriteLine("然后运行: dotnet run -- sanguo gpu");
+                Console.WriteLine("（需 NVIDIA 显卡与 CUDA 12，如 RTX 4070）");
+#endif
+            }
+            else
+                TrainSanguo();
+            return;
+        }
+        if (args.Length > 0 && args[0] == "generate-sanguo")
+        {
+            SanguoDataGeneration();
+            return;
+        }
+        if (args.Length > 0 && args[0] == "ask")
+        {
+            string dir = args.Length > 1 ? args[1] : Path.Combine(AppContext.BaseDirectory, SanguoModelDir);
+            SanguoInference.RunInteractive(dir);
+            return;
+        }
+        // 数字任务
+        if (args.Length > 0 && args[0] == "train")
+        {
+            Train();
+            return;
+        }
+        if (args.Length > 0 && args[0] == "infer")
+        {
+            string dir = args.Length > 1 ? args[1] : ModelDir;
+            RunInfer(dir);
+            return;
+        }
     }
 
     static void Run()
     {
-        string dir = ModelDir;
+        RunInfer(ModelDir);
+    }
+
+    static void RunInfer(string dir)
+    {
         Console.WriteLine("--- 推理示例（加载已保存模型） ---\n");
-        // 构造几条示例：输入为 0~9 的整数序列，输出为每个元素加 1（模 10）
-        var examples = new[]
-        {
-            new[] { 1, 2, 3 },
-            new[] { 5, 6, 7, 8 },
-            new[] { 0, 9, 4 },
-        };
-        InferenceExample.Run(examples,dir);
+        var examples = new[] { new[] { 1, 2, 3 }, new[] { 5, 6, 7, 8 }, new[] { 0, 9, 4 } };
+        InferenceExample.Run(examples, dir);
         Console.WriteLine("按任意键退出...");
         Console.ReadKey();
+    }
+
+    /// <summary>解析三国数据路径：优先 data，其次 Data（与项目目录一致）。</summary>
+    static (string trainPath, string validPath) GetSanguoDataPaths()
+    {
+        string baseDir = AppContext.BaseDirectory;
+        foreach (string dir in new[] { "data", "Data" })
+        {
+            string trainPath = Path.Combine(baseDir, dir, "sanguo_qa_train.jsonl");
+            string validPath = Path.Combine(baseDir, dir, "sanguo_qa_valid.jsonl");
+            if (File.Exists(trainPath) || File.Exists(validPath))
+                return (trainPath, validPath);
+        }
+        return (Path.Combine(baseDir, "data", "sanguo_qa_train.jsonl"), Path.Combine(baseDir, "data", "sanguo_qa_valid.jsonl"));
+    }
+
+#if USE_TORCHSHARP_GPU
+    /// <summary>三国问答 GPU 训练（需 NVIDIA 显卡 + CUDA，如 RTX 4070）。</summary>
+    static void TrainSanguoGpu()
+    {
+        var (trainPath, validPath) = GetSanguoDataPaths();
+
+        var (trainData, validData, vocab) = SanguoQaDataLoader.Load(trainPath, validPath);
+        if (trainData.Count == 0)
+        {
+            Console.WriteLine($"未找到训练数据，请将 JSONL 放入: {Path.GetFullPath(trainPath)}");
+            return;
+        }
+
+        string baseDir = AppContext.BaseDirectory;
+        string outDir = Path.Combine(baseDir, SanguoModelDir);
+        Console.WriteLine($"三国问答 (GPU): 训练 {trainData.Count}, 验证 {validData.Count}, 词表 {vocab.Size}");
+        SanguoGpuTrainer.TrainOnGpu(
+            trainData, validData, vocab,
+            maxLen: SanguoMaxLen,
+            batchSize: SanguoBatchSize,
+            epochs: SanguoEpochs,
+            learningRate: SanguoLr,
+            dModel: 64,
+            numHeads: 2,
+            dFf: 128,
+            numEncoderLayers: 2,
+            numDecoderLayers: 2,
+            outputDir: outDir);
+    }
+#endif
+
+    static void SanguoDataGeneration()
+    {
+        // 优先写入当前目录（项目 data），便于版本管理；否则写入运行目录下 data
+        string dataDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
+        if (!Directory.Exists(dataDir))
+            dataDir = Path.Combine(AppContext.BaseDirectory, "data");
+        string trainPath = Path.Combine(dataDir, "sanguo_qa_train.jsonl");
+        string validPath = Path.Combine(dataDir, "sanguo_qa_valid.jsonl");
+        SanguoQaDataGenerator.GenerateToFiles(trainPath, validPath, 1000, 200);
+        Console.WriteLine($"已生成: 训练集 {trainPath} (1000 条), 验证集 {validPath} (200 条)");
+    }
+
+    static void TrainSanguo()
+    {
+        var (trainPath, validPath) = GetSanguoDataPaths();
+
+        var (trainData, validData, vocab) = SanguoQaDataLoader.Load(trainPath, validPath);
+        if (trainData.Count == 0)
+        {
+            Console.WriteLine($"未找到训练数据，请将 JSONL 放入: {Path.GetFullPath(trainPath)}");
+            return;
+        }
+
+        Console.WriteLine($"三国问答: 训练样本 {trainData.Count}, 验证样本 {validData.Count}, 词表大小 {vocab.Size}");
+
+        var model = new TransformerModel(
+            vocabSize: vocab.Size,
+            dModel: 64,
+            numHeads: 2,
+            dFf: 128,
+            numEncoderLayers: 2,
+            numDecoderLayers: 2,
+            maxLen: SanguoMaxLen);
+
+        Console.WriteLine("开始训练 (反向传播 + SGD)...");
+        for (int epoch = 1; epoch <= SanguoEpochs; epoch++)
+        {
+            float trainLoss = Training.TrainEpochBackpropTokenized(model, trainData, SanguoMaxLen, SanguoBatchSize, SanguoLr);
+            float validLoss = Training.ValidateTokenized(model, validData, SanguoMaxLen, SanguoBatchSize);
+            Console.WriteLine($"Epoch {epoch,2}: Train Loss = {trainLoss:F4}, Valid Loss = {validLoss:F4}");
+        }
+
+        string baseDir = AppContext.BaseDirectory;
+        string outDir = Path.Combine(baseDir, SanguoModelDir);
+        Directory.CreateDirectory(outDir);
+        model.SaveToDirectory(outDir);
+        vocab.SaveToDirectory(outDir);
+        Console.WriteLine($"\n模型与词表已保存到: {Path.GetFullPath(outDir)}");
+        Console.WriteLine("问答推理: dotnet run -- ask [模型目录]");
+        Console.WriteLine("或: dotnet run -- ask " + SanguoModelDir);
     }
 
     static void Train()

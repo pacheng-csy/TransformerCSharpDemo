@@ -121,4 +121,66 @@ public static class DataGenerator
             yield return (batchInput, batchTarget, batchValid);
         }
     }
+
+    /// <summary>
+    /// 预处理“已 token 化”的样本：Sample.Input / Target 已是 token id 序列（仅内容），此处添加 [SOS]/[EOS] 并用 [PAD] 填充到 maxLen。
+    /// 与 Preprocess 输出格式一致，供三国问答等文本任务使用。
+    /// </summary>
+    public static (int[][] inputIds, int[][] targetIds, int[] validLengths) PreprocessTokenized(
+        IReadOnlyList<Sample> samples,
+        int maxLen)
+    {
+        int n = samples.Count;
+        var inputIds = new int[n][];
+        var targetIds = new int[n][];
+        var validLengths = new int[n];
+
+        for (int b = 0; b < n; b++)
+        {
+            var s = samples[b];
+            var inp = new List<int> { Vocabulary.SosId };
+            foreach (int id in s.Input)
+                inp.Add(id);
+            inp.Add(Vocabulary.EosId);
+            validLengths[b] = inp.Count;
+            while (inp.Count < maxLen)
+                inp.Add(Vocabulary.PadId);
+            inputIds[b] = inp.Take(maxLen).ToArray();
+
+            var tgt = new List<int> { Vocabulary.SosId };
+            foreach (int id in s.Target)
+                tgt.Add(id);
+            tgt.Add(Vocabulary.EosId);
+            while (tgt.Count < maxLen)
+                tgt.Add(Vocabulary.PadId);
+            targetIds[b] = tgt.Take(maxLen).ToArray();
+        }
+
+        return (inputIds, targetIds, validLengths);
+    }
+
+    /// <summary>
+    /// 按 batch 迭代已 token 化样本，返回 (inputIds, targetIds, validLengths) 每批。
+    /// </summary>
+    public static IEnumerable<(int[][] inputIds, int[][] targetIds, int[] validLengths)> BatchesTokenized(
+        IReadOnlyList<Sample> samples,
+        int maxLen,
+        int batchSize)
+    {
+        var (inputIds, targetIds, validLengths) = PreprocessTokenized(samples, maxLen);
+        for (int start = 0; start < inputIds.Length; start += batchSize)
+        {
+            int count = Math.Min(batchSize, inputIds.Length - start);
+            var batchInput = new int[count][];
+            var batchTarget = new int[count][];
+            var batchValid = new int[count];
+            for (int i = 0; i < count; i++)
+            {
+                batchInput[i] = inputIds[start + i];
+                batchTarget[i] = targetIds[start + i];
+                batchValid[i] = validLengths[start + i];
+            }
+            yield return (batchInput, batchTarget, batchValid);
+        }
+    }
 }
