@@ -227,7 +227,7 @@ public static class SanguoGpuTrainer
                 {
                     double angle = pos / Math.Pow(10000.0, (2 * i) / (double)dModel);
                     float v = (float)(i % 2 == 0 ? Math.Sin(angle) : Math.Cos(angle));
-                    data[pos * dModel + i] = v;
+                    data[pos,i] = v;
                 }
             }
             return pe;
@@ -413,7 +413,7 @@ public static class SanguoGpuTrainer
             if (keyPaddingMask is not null)
             {
                 var km = keyPaddingMask.unsqueeze(1).unsqueeze(2);
-                scores = scores.masked_fill(km == false, float.NegativeInfinity);
+                scores = scores.masked_fill(km, float.NegativeInfinity);
             }
             var attn = torch.nn.functional.softmax(scores, dim: -1);
             var out_ = torch.matmul(attn, vProj).transpose(1, 2).contiguous().view(batch, seqQ, _dModel);

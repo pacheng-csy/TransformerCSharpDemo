@@ -33,7 +33,7 @@ static class Program
 
     static void Main(string[] args)
     {
-        args = new string[] { "ask" };
+        args = new string[] { "sanguo","gpu" };
         if (args.Length > 0 && args[0] == "sanguo")
         {
             bool useGpu = args.Length > 1 && (args[1] == "gpu" || args[1] == "--gpu");

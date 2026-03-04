@@ -17,6 +17,9 @@
   <PropertyGroup Condition="'$(UseGpu)' == 'true'">
     <DefineConstants>$(DefineConstants);USE_TORCHSHARP_GPU</DefineConstants>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="TorchSharp" Version="0.106.0" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Update="data\**\*" CopyToOutputDirectory="PreserveNewest" />
